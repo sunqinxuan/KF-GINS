@@ -94,6 +94,7 @@ void GIEngine::newImuProcess() {
     // 当前IMU时间作为系统当前状态时间,
     // set current IMU time as the current state time
     timestamp_ = imucur_.time;
+    // cout << "[GIEngine] timestamp_ = " << timestamp_ << endl;
 
     // 如果GNSS有效，则将更新时间设置为GNSS时间
     // set update time as the gnss time if gnssdata is valid

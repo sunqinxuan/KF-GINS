@@ -30,6 +30,10 @@
 
 #include "kf_gins_types.h"
 
+// debug
+#include <iostream>
+using namespace std;
+
 class GIEngine {
 
 public:
@@ -49,6 +53,8 @@ public:
 
         imupre_ = imucur_;
         imucur_ = imu;
+        // cout<<"[GIEngine] imupre_.time = "<<imupre_.time<<endl;
+        // cout<<"[GIEngine] imucur_.time = "<<imucur_.time<<endl;
 
         if (compensate) {
             imuCompensate(imucur_);

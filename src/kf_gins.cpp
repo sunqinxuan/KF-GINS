@@ -33,6 +33,13 @@
 
 #include "kf-gins/gi_engine.h"
 
+using namespace std;
+// 当地地理坐标系和载体坐标系都给出了具体的数学定义，其中当地地理坐
+// 标系（n 系），也即导航坐标系的三轴分别指向北向、东向和地向，即“北-东-地（NED）”坐标系；载
+// 体坐标系（b 系）的三轴分别指向纵轴前向、横轴右向和立轴向下，即“前-右-下（FRD）”坐标系。针
+// 对这样定义的 n 系和 b 系，载体的姿态角定义则对应于“ZYX”或 321 形式的欧拉角组。即 n 系分别
+// 绕 z 轴旋转 ψ、绕过渡 y 轴转动 θ 和过渡 x 轴转动 φ 后 b 系对齐。
+
 bool loadConfig(YAML::Node &config, GINSOptions &options);
 void writeNavResult(double time, NavState &navstate, FileSaver &navfile, FileSaver &imuerrfile);
 void writeSTD(double time, Eigen::MatrixXd &cov, FileSaver &stdfile);
@@ -128,6 +135,8 @@ int main(int argc, char *argv[]) {
         std::cout << "Process time ERROR!" << std::endl;
         return -1;
     }
+    cout << "starttime = " << fixed << starttime << endl;
+    cout << "endtime = " << fixed << endtime << endl;
 
     // 数据对齐
     // data alignment
@@ -144,10 +153,12 @@ int main(int argc, char *argv[]) {
     // 添加IMU数据到GIEngine中，补偿IMU误差
     // add imudata to GIEngine and compensate IMU error
     giengine.addImuData(imu_cur, true);
+    cout << "init: imu_cur.time = " << fixed << imu_cur.time << endl;
 
     // 添加GNSS数据到GIEngine
     // add gnssdata to GIEngine
     giengine.addGnssData(gnss);
+    cout << "init: gnss.time = " << fixed << gnss.time << endl;
 
     // 用于保存处理结果
     // used to save processing results
@@ -160,21 +171,29 @@ int main(int argc, char *argv[]) {
     int percent = 0, lastpercent = 0;
     double interval = endtime - starttime;
 
+    // ofstream fp("debug.txt");
+
     while (true) {
+        // fp << endl << "current time : " << fixed << giengine.timestamp() << endl;
+
         // 当前IMU状态时间新于GNSS时间时，读取并添加新的GNSS数据到GIEngine
         // load new gnssdata when current state time is newer than GNSS time and add it to GIEngine
         if (gnss.time < imu_cur.time && !gnssfile.isEof()) {
+            // fp << "current gnss : " << fixed << gnss.time << endl;
             gnss = gnssfile.next();
             giengine.addGnssData(gnss);
+            // fp << "add new gnss : " << fixed << gnss.time << endl;
         }
 
         // 读取并添加新的IMU数据到GIEngine
         // load new imudata and add it to GIEngine
+        // fp << "current imu : " << fixed << imu_cur.time << endl;
         imu_cur = imufile.next();
         if (imu_cur.time > endtime || imufile.isEof()) {
             break;
         }
         giengine.addImuData(imu_cur);
+        // fp << "add new imu : " << fixed << imu_cur.time << endl;
 
         // 处理新的IMU数据
         // process new imudata
@@ -185,6 +204,8 @@ int main(int argc, char *argv[]) {
         timestamp = giengine.timestamp();
         navstate  = giengine.getNavState();
         cov       = giengine.getCovariance();
+
+        // cout << "timestamp = " << timestamp << endl;
 
         // 保存处理结果
         // save processing results
@@ -199,6 +220,7 @@ int main(int argc, char *argv[]) {
             lastpercent = percent;
         }
     }
+    // fp.close();
 
     // 关闭打开的文件
     // close opened file
